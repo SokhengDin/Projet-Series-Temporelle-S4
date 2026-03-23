@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+
+# Ignore Data
+data/*
+data
+
+# Ignore lightingh AI 
+.windsurf-server
+.cursor-server
+.idea/
+.lightning_studio/
+.vscode-server
