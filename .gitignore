@@ -16,7 +16,12 @@ data
 
 # Ignore lightingh AI 
 .windsurf-server
-.cursor-server
+.cursor-serverx
 .idea/
 .lightning_studio/
 .vscode-server
+#
+
+# Ignore result
+
+results/json/
