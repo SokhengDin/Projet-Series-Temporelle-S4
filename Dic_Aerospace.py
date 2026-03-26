@@ -1,0 +1,11 @@
+Dic_Aerospace = { "AIR.PA" : "Airbus"
+                , "AM.PA"  : "Dassault Aviation"
+                , "BA"     : "The Boeing Company"
+                , "BAESY"  : "BAE Systems plc"
+                , "BDRAF"  : "Bombardier Inc."
+                , "GD"     : "General Dynamics Corporation"
+                , "HON"    : "Honeywell International Inc."
+                , "LMT"    : "Lockheed Martin Corporation"
+                , "NOC"    : "Northrop Grumman Corporation"
+                , "RTX"    : "RTX Corporation"
+                }
