@@ -1,7 +1,7 @@
 START_DATE = "2023-01-04"
 DATA_DIR   = "./data/Secteur_Aerospace"
 
-# Dataload
+
 def load_series(ticker):
     import os
     import pandas as pd
@@ -17,6 +17,7 @@ def load_series(ticker):
     return df
 
 
+# Veasna, Voatei, Ousaphea, Member3 — Y_t = 0.25*X_{t-1} + 0.50*X_t + 0.25*X_{t+1}
 def hanning_filter(df):
     df        = df.copy()
     df["Y_t"] = (  0.25 * df["X_t"].shift(1)
@@ -25,7 +26,7 @@ def hanning_filter(df):
     return df.dropna().reset_index(drop=True)
 
 
-# KS Scan
+# Veasna, Voatei, Ousaphea, Member3 — scan k in {margin,...,n-margin}, pick argmax(D)
 def ks_scan(series, margin=30):
     import numpy as np
     from scipy.stats import ks_2samp
@@ -47,14 +48,15 @@ def ks_scan(series, margin=30):
            }
 
 
-# Skew-Normal MLE
+# Veasna, Voatei, Ousaphea, Member3 — f(x) = (2/sigma)*phi(z)*Phi(theta*z)
 def skew_normal_pdf(x, mu, sigma, theta):
     from scipy.stats import norm
 
     z = (x - mu) / sigma
     return (2.0 / sigma) * norm.pdf(z) * norm.cdf(theta * z)
 
-# Fit skews
+
+# Veasna, Voatei, Ousaphea, Member3 — joint MLE, common theta, L-BFGS-B
 def fit_skew_normal(y1, y2):
     import numpy as np
     from scipy.optimize import minimize
@@ -85,7 +87,7 @@ def fit_skew_normal(y1, y2):
            }
 
 
-# run analyze
+# Ousaphea — analyze_company; Veasna/Voatei/Member3 — per company
 def analyse(ticker):
     import numpy as np
     from Dic_Aerospace import Dic_Aerospace
@@ -110,10 +112,9 @@ def analyse(ticker):
         f"sigma2 = {mle['sigma2']:.4f}, theta = {mle['theta']:.4f}."
     )
 
-    # pdf grids for both segments
     y1, y2 = Y[:k_hat], Y[k_hat:]
-    xg1    = np.linspace(y1.min(), y1.max(), 400)
-    xg2    = np.linspace(y2.min(), y2.max(), 400)
+    xg1    = np.linspace(y1.min(), y1.max(), 300)
+    xg2    = np.linspace(y2.min(), y2.max(), 300)
 
     chart_data = { "dates"   : raw_df["Date"].dt.strftime("%Y-%m-%d").tolist()
                  , "prices"  : raw_df["X_t"].tolist()
@@ -147,7 +148,7 @@ def analyse(ticker):
            }
 
 
-# plot as base64
+# Plots (base64)
 
 def _fig_to_b64(fig, tmp="tmp_plot.png"):
     import os
@@ -162,17 +163,18 @@ def _fig_to_b64(fig, tmp="tmp_plot.png"):
     return b64
 
 
+# Ousaphea — plot_raw_and_filtered(df, ticker)
 def plot_series64(ticker):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     df = hanning_filter(load_series(ticker))
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
     for ax, col, title in zip(axes,
                                ["X_t",       "Y_t"],
                                ["Raw Series", "Hanning Filtered"]):
-        ax.plot(df["Date"], df[col])
+        ax.plot(df["Date"], df[col], lw=1.5)
         ax.set_title(f"{title} – {ticker}")
         ax.set_xlabel("Date")
         ax.set_ylabel(col)
@@ -183,6 +185,7 @@ def plot_series64(ticker):
     return _fig_to_b64(fig)
 
 
+# Veasna, Voatei — plot_ks_scan
 def plot_ks_scan64(ticker):
     import matplotlib
     matplotlib.use("Agg")
@@ -191,10 +194,10 @@ def plot_ks_scan64(ticker):
     df   = hanning_filter(load_series(ticker))
     scan = ks_scan(df["Y_t"].to_numpy())
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(scan["k_values"], scan["ks_stats"])
-    ax.axvline(scan["k_hat"], linestyle="--", color="red",
-               label=f"k_hat = {scan['k_hat']}")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(scan["k_values"], scan["ks_stats"], lw=1.5)
+    ax.axvline(scan["k_hat"], linestyle="--", color="#E05A3A",
+               label=f"k̂ = {scan['k_hat']}")
     ax.set_title(f"KS Statistic Scan – {ticker}")
     ax.set_xlabel("Candidate k")
     ax.set_ylabel("KS statistic")
@@ -205,6 +208,7 @@ def plot_ks_scan64(ticker):
     return _fig_to_b64(fig)
 
 
+# Ousaphea — plot_breakpoint with regime colours
 def plot_breakpoint64(ticker):
     import matplotlib
     matplotlib.use("Agg")
@@ -216,9 +220,11 @@ def plot_breakpoint64(ticker):
     k    = scan["k_hat"]
     date = df.loc[k, "Date"]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(df["Date"], df["Y_t"], label="Filtered series", color="steelblue")
-    ax.axvline(date, linestyle="--", color="red", label=f"k_hat = {k}")
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(df["Date"][:k], Y[:k], lw=1, label="Régime 1", color="#0E9E74")
+    ax.plot(df["Date"][k:], Y[k:], lw=1, label="Régime 2", color="#E8A020")
+    ax.axvline(date, linestyle="--", color="#E05A3A",
+               label=f"k̂ = {k} ({date.date()})")
     ax.set_title(f"Breakpoint Detection – {ticker}")
     ax.set_xlabel("Date")
     ax.set_ylabel("Y_t")
@@ -230,6 +236,7 @@ def plot_breakpoint64(ticker):
     return _fig_to_b64(fig)
 
 
+# Ousaphea, Voatei — side-by-side histogram + SN density per regime
 def plot_segment_fits64(ticker):
     import numpy as np
     import matplotlib
@@ -242,21 +249,21 @@ def plot_segment_fits64(ticker):
     k    = scan["k_hat"]
     mle  = fit_skew_normal(Y[:k], Y[k:])
 
-    plots = {}
-    for segment, y, mu, sigma, label in [
-        ("before", Y[:k], mle["mu1"], mle["sigma1"], "Before rupture"),
-        ("after",  Y[k:], mle["mu2"], mle["sigma2"], "After rupture"),
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+    for ax, y, mu, sigma, color, label in [
+        (axes[0], Y[:k], mle["mu1"], mle["sigma1"], "#0E9E74", f"Régime 1 (n={k})"),
+        (axes[1], Y[k:], mle["mu2"], mle["sigma2"], "#E8A020", f"Régime 2 (n={len(Y)-k})"),
     ]:
         x_grid = np.linspace(y.min(), y.max(), 400)
-        pdf    = skew_normal_pdf(x_grid, mu, sigma, mle["theta"])
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.hist(y, bins=12, density=True, alpha=0.6)
-        ax.plot(x_grid, pdf, linewidth=2)
-        ax.set_title(f"{ticker} – {label} fit")
+        ax.hist(y, bins=12, density=True, alpha=0.5, color=color)
+        ax.plot(x_grid, skew_normal_pdf(x_grid, mu, sigma, mle["theta"]),
+                color=color, lw=2,
+                label=f"SN(μ={mu:.4f}, σ={sigma:.4f}, θ={mle['theta']:.4f})")
+        ax.set_title(f"{ticker} – {label}")
         ax.set_xlabel("Y_t")
         ax.set_ylabel("Density")
+        ax.legend(fontsize=8)
         for side in ["right", "top"]:
             ax.spines[side].set_visible(False)
-        fig.tight_layout()
-        plots[segment] = _fig_to_b64(fig)
-    return plots
+    fig.tight_layout()
+    return _fig_to_b64(fig)
