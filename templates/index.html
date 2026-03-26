@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aerospace Sector – Structural Break Analysis</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 80px auto; }
+        h1   { font-size: 1.4rem; margin-bottom: 0.3rem; }
+        p    { color: #555; margin-bottom: 1.5rem; }
+        select, button { font-size: 1rem; padding: 0.5rem 0.8rem; }
+        select { width: 100%; margin-bottom: 1rem; }
+        button { background: #2563eb; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <h1>Aerospace Sector</h1>
+    <p>Select a company to run the structural break analysis.</p>
+
+    <form action="/Menu_Liste" method="POST">
+        <select name="Aerospace">
+            {% for ticker, name in societes.items() %}
+                <option value="{{ ticker }}">{{ ticker }} – {{ name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Analyse</button>
+    </form>
+</body>
+</html>

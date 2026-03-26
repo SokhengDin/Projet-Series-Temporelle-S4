@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }} – Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body  { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 1rem; }
+        h1    { font-size: 1.4rem; }
+        a     { color: #2563eb; }
+        #loading { color: #6b7280; margin: 2rem 0; }
+        #content { display: none; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        td, th { border: 1px solid #ddd; padding: 0.4rem 0.8rem; text-align: left; }
+        th    { background: #f3f4f6; }
+        .reject { color: #dc2626; font-weight: bold; }
+        .fail   { color: #16a34a; font-weight: bold; }
+        .chart-wrap { margin: 2rem 0; }
+        canvas { max-height: 300px; }
+        p.interp { background: #f9fafb; border-left: 3px solid #2563eb;
+                   padding: 0.6rem 1rem; font-size: 0.9rem; color: #374151; }
+    </style>
+</head>
+<body>
+
+    <h1>{{ name }} ({{ ticker }})</h1>
+    <a href="/">← Back</a>
+
+    <p id="loading">Running analysis…</p>
+
+    <div id="content">
+        <h2>Results</h2>
+        <table id="tbl-results"></table>
+
+        <h2>MLE Parameters</h2>
+        <table id="tbl-mle"></table>
+
+        <p class="interp" id="interp"></p>
+
+        <div class="chart-wrap"><h2>Raw Series vs Hanning Filter</h2><canvas id="chartSeries"></canvas></div>
+        <div class="chart-wrap"><h2>KS Scan</h2><canvas id="chartKS"></canvas></div>
+        <div class="chart-wrap"><h2>Segment Fits (Skew Normal)</h2><canvas id="chartPDF"></canvas></div>
+    </div>
+
+<script>
+fetch("/results", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ ticker: "{{ ticker }}" })
+})
+.then(r => r.json())
+.then(d => {
+    const C = d.chart_data;
+
+    // ── Tables ───────────────────────────────────────────────────────────────
+    document.getElementById("tbl-results").innerHTML = `
+        <tr><th>Rupture index k̂</th><td>${d.k_hat}</td></tr>
+        <tr><th>Rupture date</th>    <td>${d.bp_date}</td></tr>
+        <tr><th>KS statistic D</th>  <td>${d.D.toFixed(4)}</td></tr>
+        <tr><th>p-value</th>         <td>${d.p_value.toExponential(4)}</td></tr>
+        <tr><th>Decision</th>        <td class="${d.reject_H0 ? 'reject' : 'fail'}">${d.verdict}</td></tr>
+        <tr><th>n₁ (before)</th>     <td>${d.n1}</td></tr>
+        <tr><th>n₂ (after)</th>      <td>${d.n2}</td></tr>
+    `;
+
+    document.getElementById("tbl-mle").innerHTML = `
+        <tr><th></th><th>μ</th><th>σ</th><th>θ (common)</th></tr>
+        <tr><td>Before</td><td>${d.mu1.toFixed(4)}</td><td>${d.sigma1.toFixed(4)}</td>
+            <td rowspan="2" style="vertical-align:middle">${d.theta.toFixed(4)}</td></tr>
+        <tr><td>After</td> <td>${d.mu2.toFixed(4)}</td><td>${d.sigma2.toFixed(4)}</td></tr>
+    `;
+
+    document.getElementById("interp").textContent = d.interpretation;
+
+    // ── Raw vs Filtered ──────────────────────────────────────────────────────
+    new Chart(document.getElementById("chartSeries"), {
+        type: "line",
+        data: {
+            labels: C.dates,
+            datasets: [
+                { label: "Raw X_t",     data: C.prices,   borderWidth: 1, pointRadius: 0, borderColor: "#94a3b8" },
+                { label: "Hanning Y_t", data: C.smoothed, borderWidth: 2, pointRadius: 0, borderColor: "#2563eb" },
+            ]
+        },
+        options: {
+            animation: false,
+            plugins: { legend: { position: "top" } },
+            scales:  { x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } } }
+        }
+    });
+
+    // ── KS Scan ──────────────────────────────────────────────────────────────
+    new Chart(document.getElementById("chartKS"), {
+        type: "line",
+        data: {
+            labels: C.scan_k,
+            datasets: [
+                { label: "KS stat D", data: C.scan_D, borderWidth: 1.5, pointRadius: 0, borderColor: "#2563eb", fill: false },
+            ]
+        },
+        options: {
+            animation: false,
+            plugins: { legend: { position: "top" } },
+            scales:  { x: { ticks: { maxTicksLimit: 10 } } }
+        }
+    });
+
+    // ── Segment PDFs ─────────────────────────────────────────────────────────
+    new Chart(document.getElementById("chartPDF"), {
+        type: "line",
+        data: {
+            datasets: [
+                { label: `PDF before (μ₁=${d.mu1.toFixed(2)})`,
+                  data: C.xg1.map((x, i) => ({ x, y: C.pdf1[i] })),
+                  borderColor: "#2563eb", borderWidth: 2, pointRadius: 0, fill: false },
+                { label: `PDF after  (μ₂=${d.mu2.toFixed(2)})`,
+                  data: C.xg2.map((x, i) => ({ x, y: C.pdf2[i] })),
+                  borderColor: "#dc2626", borderWidth: 2, pointRadius: 0, fill: false },
+            ]
+        },
+        options: {
+            animation: false,
+            parsing: false,
+            plugins: { legend: { position: "top" } },
+            scales:  { x: { type: "linear", ticks: { maxTicksLimit: 8 } } }
+        }
+    });
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("content").style.display  = "block";
+})
+.catch(err => {
+    document.getElementById("loading").textContent = "Error: " + err.message;
+});
+</script>
+</body>
+</html>
