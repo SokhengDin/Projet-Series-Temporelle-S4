@@ -1,0 +1,14 @@
+{
+    "company": "NOC",
+    "k_hat": 636,
+    "break_date": "2025-07-22",
+    "ks_statistic": 1.0,
+    "p_value": 4.751232536633156e-152,
+    "mu1": 457.7250746462264,
+    "sigma1": 30.17045896084362,
+    "mu2": 587.0125791666667,
+    "sigma2": 29.103346132768525,
+    "theta": 0.0,
+    "verdict": "Reject H0",
+    "interpretation": "For NOC, the estimated rupture point is k_hat = 636 (2025-07-22). The KS statistic is 1.0000 and the p-value is 0.0000, so the decision is: Reject H0. The joint MLE estimates are mu1 = 457.7251, sigma1 = 30.1705, mu2 = 587.0126, sigma2 = 29.1033, theta = 0.0000."
+}

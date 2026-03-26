@@ -1,0 +1,14 @@
+{
+    "company": "BDRAF",
+    "k_hat": 341,
+    "break_date": "2024-05-15",
+    "ks_statistic": 1.0,
+    "p_value": 5.542466799052602e-228,
+    "mu1": 42.44061583577712,
+    "sigma1": 5.467601070023512,
+    "mu2": 91.81793911007024,
+    "sigma2": 38.871243403784305,
+    "theta": 1.6377902575818667e-08,
+    "verdict": "Reject H0",
+    "interpretation": "For BDRAF, the estimated rupture point is k_hat = 341 (2024-05-15). The KS statistic is 1.0000 and the p-value is 0.0000, so the decision is: Reject H0. The joint MLE estimates are mu1 = 42.4406, sigma1 = 5.4676, mu2 = 91.8179, sigma2 = 38.8712, theta = 0.0000."
+}
