@@ -16,7 +16,7 @@ data
 
 # Ignore lightingh AI 
 .windsurf-server
-.cursor-serverx
+.cursor-server
 .idea/
 .lightning_studio/
 .vscode-server
