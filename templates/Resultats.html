@@ -1,137 +1,288 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ name }} – Results</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body  { font-family: sans-serif; max-width: 900px; margin: 40px auto; padding: 0 1rem; }
-        h1    { font-size: 1.4rem; }
-        a     { color: #2563eb; }
-        #loading { color: #6b7280; margin: 2rem 0; }
-        #content { display: none; }
-        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
-        td, th { border: 1px solid #ddd; padding: 0.4rem 0.8rem; text-align: left; }
-        th    { background: #f3f4f6; }
-        .reject { color: #dc2626; font-weight: bold; }
-        .fail   { color: #16a34a; font-weight: bold; }
-        .chart-wrap { margin: 2rem 0; }
-        canvas { max-height: 300px; }
-        p.interp { background: #f9fafb; border-left: 3px solid #2563eb;
-                   padding: 0.6rem 1rem; font-size: 0.9rem; color: #374151; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ name }} — Sujet 3</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/resultats.css') }}">
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body>
 
-    <h1>{{ name }} ({{ ticker }})</h1>
-    <a href="/">← Back</a>
+<!-- ══ NAVBAR ═══════════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="navbar-brand-title">Sujet 3</span>
+    <span class="navbar-brand-sub" id="navName">{{ name }}</span>
+  </div>
+  <span class="navbar-ticker" id="navTicker">{{ ticker }}</span>
+  <div class="navbar-spacer"></div>
+  <a href="/" class="btn-back">← Liste</a>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+</nav>
 
-    <p id="loading">Running analysis…</p>
+<!-- ══ MAIN ══════════════════════════════════════════════════════════════ -->
+<div class="container">
 
-    <div id="content">
-        <h2>Results</h2>
-        <table id="tbl-results"></table>
+  <!-- Loading -->
+  <div id="loadingState" class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Analyse en cours…</div>
+  </div>
 
-        <h2>MLE Parameters</h2>
-        <table id="tbl-mle"></table>
+  <!-- Content -->
+  <div id="mainContent" style="display:none;">
 
-        <p class="interp" id="interp"></p>
-
-        <div class="chart-wrap"><h2>Raw Series vs Hanning Filter</h2><canvas id="chartSeries"></canvas></div>
-        <div class="chart-wrap"><h2>KS Scan</h2><canvas id="chartKS"></canvas></div>
-        <div class="chart-wrap"><h2>Segment Fits (Skew Normal)</h2><canvas id="chartPDF"></canvas></div>
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="pageTitle">{{ name }}</div>
+        <div class="page-meta">
+          <span>Hanning</span><span class="meta-sep">·</span>
+          <span>Skew-Normal MLE</span><span class="meta-sep">·</span>
+          <span>Test KS</span><span class="meta-sep">·</span>
+          <a id="yahooLink" href="#" target="_blank">Yahoo Finance ↗</a>
+        </div>
+      </div>
     </div>
 
+    <!-- Metric cards -->
+    <div class="metrics-grid">
+      <div class="metric-card c-amber">
+        <div class="metric-label">Rupture k̂</div>
+        <div class="metric-value v-amber" id="mc-khat">—</div>
+        <div class="metric-sub"    id="mc-bpdate">—</div>
+      </div>
+      <div class="metric-card c-coral">
+        <div class="metric-label">Stat. KS  D</div>
+        <div class="metric-value v-coral" id="mc-D">—</div>
+        <div class="metric-sub">critique : 0.108</div>
+      </div>
+      <div class="metric-card" id="mc-pcard">
+        <div class="metric-label">p-valeur</div>
+        <div class="metric-value" id="mc-pval">—</div>
+        <div class="metric-sub">α = 5 %</div>
+      </div>
+      <div class="metric-card c-blue">
+        <div class="metric-label">θ partagé</div>
+        <div class="metric-value" id="mc-theta">—</div>
+        <div class="metric-sub">asymétrie SN</div>
+      </div>
+      <div class="metric-card c-teal">
+        <div class="metric-label">Régime 1</div>
+        <div class="metric-value" id="mc-mu1" style="font-size:17px;">—</div>
+        <div class="metric-sub"   id="mc-sig1">—</div>
+      </div>
+      <div class="metric-card c-gray">
+        <div class="metric-label">Régime 2</div>
+        <div class="metric-value" id="mc-mu2" style="font-size:17px;">—</div>
+        <div class="metric-sub"   id="mc-sig2">—</div>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-icon" id="verdictIcon">…</div>
+      <div id="verdictText">Chargement…</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-nav" id="tabsNav">
+      <button class="tab-btn active" data-tab="t-hanning">Prix &amp; Hanning</button>
+      <button class="tab-btn"        data-tab="t-returns">Log-retours</button>
+      <button class="tab-btn"        data-tab="t-sn">Loi SN</button>
+      <button class="tab-btn"        data-tab="t-ks">Scan KS</button>
+      <button class="tab-btn"        data-tab="t-pval">P-valeur</button>
+      <button class="tab-btn"        data-tab="t-ecdf">ECDF</button>
+      <button class="tab-btn"        data-tab="t-mm">Moy. Mobile</button>
+      <button class="tab-btn"        data-tab="t-stats">Statistiques</button>
+      <button class="tab-btn"        data-tab="t-mle">Paramètres MLE</button>
+      <button class="tab-btn"        data-tab="t-interp">Interprétation</button>
+    </div>
+
+    <!-- ── Tab 1: Prix & Hanning ──────────────────────────────────────── -->
+    <div id="t-hanning" class="tab-pane active">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">1</span>Prix brut vs Filtre de Hanning</div>
+        <div class="section-desc">
+          Gris = Adj Close brut (Xₜ). Bleu = série lissée Hanning
+          \(Y_t = \tfrac{1}{4}X_{t-1}+\tfrac{1}{2}X_t+\tfrac{1}{4}X_{t+1}\).
+          Ligne rouge pointillée = rupture k̂.
+        </div>
+        <div class="chart-wrap" id="ch-price" style="min-height:340px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 2: Log-retours ─────────────────────────────────────────── -->
+    <div id="t-returns" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">2</span>Yₜ (Hanning) coloré par régime</div>
+        <div class="section-desc">
+          Vert = Régime 1 (t &lt; k̂). Ambre = Régime 2 (t ≥ k̂).
+        </div>
+        <div class="chart-wrap" id="ch-returns" style="min-height:300px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 3: SN fits ─────────────────────────────────────────────── -->
+    <div id="t-sn" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">3</span>Ajustement Skew-Normal par Régime</div>
+        <div class="section-desc">
+          \(f(x;\mu,\sigma,\theta)=\tfrac{2}{\sigma}\varphi(z)\Phi(\theta z)\), θ partagé.
+        </div>
+        <div class="chart-grid-2">
+          <div>
+            <div class="chart-sub-label" style="color:var(--teal);">Régime 1</div>
+            <div class="chart-wrap" id="ch-sn1" style="min-height:260px;"></div>
+          </div>
+          <div>
+            <div class="chart-sub-label" style="color:var(--amber);">Régime 2</div>
+            <div class="chart-wrap" id="ch-sn2" style="min-height:260px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab 4: KS Scan ─────────────────────────────────────────────── -->
+    <div id="t-ks" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">4</span>Scan KS exhaustif — D(k)</div>
+        <div class="section-desc">
+          D(k) pour chaque candidat k. Losange rouge = k̂. Ligne grise = D critique 0.108 (α = 5 %).
+        </div>
+        <div class="chart-wrap" id="ch-ks" style="min-height:300px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 5: P-value scan ────────────────────────────────────────── -->
+    <div id="t-pval" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">5</span>Scan p-valeur — log₁₀(p(k))</div>
+        <div class="section-desc">
+          Axe en log₁₀ pour la lisibilité. Ligne rouge = α = 5 %. Ligne ambre = k̂.
+        </div>
+        <div class="chart-wrap" id="ch-pval" style="min-height:260px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 6: ECDF ────────────────────────────────────────────────── -->
+    <div id="t-ecdf" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">6</span>Comparaison ECDF</div>
+        <div class="section-desc">Segment rouge = écart maximal D (statistique KS).</div>
+        <div class="formula-box">
+          H₀ : les deux régimes suivent la même loi &nbsp;|&nbsp;
+          H₁ : distributions différentes
+        </div>
+        <div class="chart-wrap" id="ch-ecdf" style="min-height:300px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 7: Moyenne Mobile ──────────────────────────────────────── -->
+    <div id="t-mm" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">7</span>Moyenne Mobile (h = 15)</div>
+        <div class="section-desc">
+          \(M_h(t) = \dfrac{1}{2h+1}\displaystyle\sum_{j=-h}^{h}X_{t+j}\)
+        </div>
+        <div class="chart-wrap" id="ch-mm" style="min-height:300px;"></div>
+      </div>
+    </div>
+
+    <!-- ── Tab 8: Statistiques descriptives ──────────────────────────── -->
+    <div id="t-stats" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">8</span>Statistiques descriptives — Adj Close</div>
+        <div class="section-desc" id="stats-caption">—</div>
+        <div style="overflow-x:auto;">
+          <table class="stats-table" id="stats-table">
+            <thead>
+              <tr><th>Statistique</th><th>Valeur</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Nombre d'observations</td><td id="st-n">—</td></tr>
+              <tr><td>Minimum</td>              <td id="st-min">—</td></tr>
+              <tr><td>Maximum</td>              <td id="st-max">—</td></tr>
+              <tr><td>Moyenne empirique</td>    <td id="st-mean">—</td></tr>
+              <tr><td>Variance empirique</td>   <td id="st-var">—</td></tr>
+              <tr><td>Skewness (γ₁)</td>        <td id="st-skew">—</td></tr>
+              <tr><td>Kurtosis (γ₂)</td>        <td id="st-kurt">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab 9: MLE parameters ──────────────────────────────────────── -->
+    <div id="t-mle" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">9</span>Paramètres MLE — Résumé</div>
+        <div class="formula-box">
+          \(\hat\theta,\hat\mu_1,\hat\sigma_1,\hat\mu_2,\hat\sigma_2 =
+            \arg\max\bigl[\ell_1(\mu_1,\sigma_1,\theta)+\ell_2(\mu_2,\sigma_2,\theta)\bigr]\)
+        </div>
+        <div style="overflow-x:auto;margin-bottom:1.5rem;">
+          <table class="mle-table">
+            <thead>
+              <tr><th>Régime</th><th>n</th><th>μ</th><th>σ</th><th>θ partagé</th><th>−log L</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="regime1-cell">Régime 1</td>
+                <td id="mle-n1">—</td><td id="mle-mu1">—</td><td id="mle-sig1">—</td>
+                <td rowspan="2" id="mle-theta" style="vertical-align:middle;font-weight:700;">—</td>
+                <td rowspan="2" id="mle-negll"  style="vertical-align:middle;color:var(--text-muted);">—</td>
+              </tr>
+              <tr>
+                <td class="regime2-cell">Régime 2</td>
+                <td id="mle-n2">—</td><td id="mle-mu2">—</td><td id="mle-sig2">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="section-title" style="font-size:14px;margin-bottom:10px;">Résultats du test KS</div>
+        <div style="overflow-x:auto;">
+          <table class="stats-table">
+            <thead><tr><th>Paramètre</th><th>Valeur</th></tr></thead>
+            <tbody>
+              <tr><td>Indice de rupture k̂</td> <td id="ks-khat">—</td></tr>
+              <tr><td>Date de rupture</td>       <td id="ks-date">—</td></tr>
+              <tr><td>Statistique D</td>         <td id="ks-D">—</td></tr>
+              <tr><td>p-valeur</td>              <td id="ks-pval">—</td></tr>
+              <tr><td>Décision (α = 5 %)</td>    <td id="ks-verdict">—</td></tr>
+              <tr><td>n₁ (avant rupture)</td>    <td id="ks-n1">—</td></tr>
+              <tr><td>n₂ (après rupture)</td>    <td id="ks-n2">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab 10: Interprétation ─────────────────────────────────────── -->
+    <div id="t-interp" class="tab-pane">
+      <div class="page-card">
+        <div class="section-title"><span class="section-num">10</span>Interprétation statistique</div>
+        <div class="interp-text" id="interpText">Chargement…</div>
+      </div>
+    </div>
+
+  </div><!-- /mainContent -->
+</div><!-- /container -->
+
+<!-- ══ SCRIPTS ═══════════════════════════════════════════════════════════ -->
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/resultats.js') }}"></script>
+
 <script>
-fetch("/results", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ ticker: "{{ ticker }}" })
-})
-.then(r => r.json())
-.then(d => {
-    const C = d.chart_data;
-
-    // ── Tables ───────────────────────────────────────────────────────────────
-    document.getElementById("tbl-results").innerHTML = `
-        <tr><th>Rupture index k̂</th><td>${d.k_hat}</td></tr>
-        <tr><th>Rupture date</th>    <td>${d.bp_date}</td></tr>
-        <tr><th>KS statistic D</th>  <td>${d.D.toFixed(4)}</td></tr>
-        <tr><th>p-value</th>         <td>${d.p_value.toExponential(4)}</td></tr>
-        <tr><th>Decision</th>        <td class="${d.reject_H0 ? 'reject' : 'fail'}">${d.verdict}</td></tr>
-        <tr><th>n₁ (before)</th>     <td>${d.n1}</td></tr>
-        <tr><th>n₂ (after)</th>      <td>${d.n2}</td></tr>
-    `;
-
-    document.getElementById("tbl-mle").innerHTML = `
-        <tr><th></th><th>μ</th><th>σ</th><th>θ (common)</th></tr>
-        <tr><td>Before</td><td>${d.mu1.toFixed(4)}</td><td>${d.sigma1.toFixed(4)}</td>
-            <td rowspan="2" style="vertical-align:middle">${d.theta.toFixed(4)}</td></tr>
-        <tr><td>After</td> <td>${d.mu2.toFixed(4)}</td><td>${d.sigma2.toFixed(4)}</td></tr>
-    `;
-
-    document.getElementById("interp").textContent = d.interpretation;
-
-    // ── Raw vs Filtered ──────────────────────────────────────────────────────
-    new Chart(document.getElementById("chartSeries"), {
-        type: "line",
-        data: {
-            labels: C.dates,
-            datasets: [
-                { label: "Raw X_t",     data: C.prices,   borderWidth: 1, pointRadius: 0, borderColor: "#94a3b8" },
-                { label: "Hanning Y_t", data: C.smoothed, borderWidth: 2, pointRadius: 0, borderColor: "#2563eb" },
-            ]
-        },
-        options: {
-            animation: false,
-            plugins: { legend: { position: "top" } },
-            scales:  { x: { ticks: { maxTicksLimit: 10, maxRotation: 45 } } }
-        }
-    });
-
-    // ── KS Scan ──────────────────────────────────────────────────────────────
-    new Chart(document.getElementById("chartKS"), {
-        type: "line",
-        data: {
-            labels: C.scan_k,
-            datasets: [
-                { label: "KS stat D", data: C.scan_D, borderWidth: 1.5, pointRadius: 0, borderColor: "#2563eb", fill: false },
-            ]
-        },
-        options: {
-            animation: false,
-            plugins: { legend: { position: "top" } },
-            scales:  { x: { ticks: { maxTicksLimit: 10 } } }
-        }
-    });
-
-    // ── Segment PDFs ─────────────────────────────────────────────────────────
-    new Chart(document.getElementById("chartPDF"), {
-        type: "line",
-        data: {
-            datasets: [
-                { label: `PDF before (μ₁=${d.mu1.toFixed(2)})`,
-                  data: C.xg1.map((x, i) => ({ x, y: C.pdf1[i] })),
-                  borderColor: "#2563eb", borderWidth: 2, pointRadius: 0, fill: false },
-                { label: `PDF after  (μ₂=${d.mu2.toFixed(2)})`,
-                  data: C.xg2.map((x, i) => ({ x, y: C.pdf2[i] })),
-                  borderColor: "#dc2626", borderWidth: 2, pointRadius: 0, fill: false },
-            ]
-        },
-        options: {
-            animation: false,
-            parsing: false,
-            plugins: { legend: { position: "top" } },
-            scales:  { x: { type: "linear", ticks: { maxTicksLimit: 8 } } }
-        }
-    });
-
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("content").style.display  = "block";
-})
-.catch(err => {
-    document.getElementById("loading").textContent = "Error: " + err.message;
+document.addEventListener('DOMContentLoaded', () => {
+  initResultats('{{ ticker }}');
 });
 </script>
+
 </body>
 </html>

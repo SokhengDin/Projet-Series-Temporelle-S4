@@ -1,29 +1,68 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <title>Aerospace Sector – Structural Break Analysis</title>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 80px auto; }
-        h1   { font-size: 1.4rem; margin-bottom: 0.3rem; }
-        p    { color: #555; margin-bottom: 1.5rem; }
-        select, button { font-size: 1rem; padding: 0.5rem 0.8rem; }
-        select { width: 100%; margin-bottom: 1rem; }
-        button { background: #2563eb; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
-        button:hover { background: #1d4ed8; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sujet 3 — Analyse Secteur Aerospace</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
 <body>
-    <h1>Aerospace Sector</h1>
-    <p>Select a company to run the structural break analysis.</p>
 
-    <form action="/Menu_Liste" method="POST">
-        <select name="Aerospace">
-            {% for ticker, name in societes.items() %}
-                <option value="{{ ticker }}">{{ ticker }} – {{ name }}</option>
-            {% endfor %}
+<!-- ══════════════════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="navbar-brand-title">Sujet 3</span>
+    <span class="navbar-brand-sub">Séries Temporelles</span>
+  </div>
+  <div class="navbar-spacer"></div>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="index-hero">
+    <div class="index-hero-tag">Filtre de Hanning</div>
+    <h1>Application aux données du secteur <br>Aéronautique</h1>
+    <p> Skew-Normal MLE · Kolmogorov-Smirnov breakpoint detection</p>
+
+    <!-- Company selector form -->
+    <div class="select-card">
+      <form action="/Menu_Liste" method="POST">
+        <label class="select-label" for="companySelect">Sélectionner une entreprise</label>
+        <select class="select-input" id="companySelect" name="Aerospace">
+          {% for ticker, name in societes.items() %}
+            <option value="{{ ticker }}">{{ ticker }} — {{ name }}</option>
+          {% endfor %}
         </select>
-        <button type="submit">Analyse</button>
-    </form>
+        <button type="submit" class="btn-analyse">Lancer l'analyse →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ticker badge list - centered using inline styles only (no added CSS) -->
+  <div style="max-width:520px;margin:2rem auto 4rem; text-align: center;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase; color:var(--text-sub);font-family:var(--font-mono);margin-bottom:12px;">
+      Entreprises disponibles
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px; justify-content: center;">
+      {% for ticker, name in societes.items() %}
+      <div class="ticker-badge" title="{{ name }}">{{ ticker }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+
+</div>
+
+
+
+<!-- ── Page script ─────────────────────────────────────────────────────── -->
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+
 </body>
 </html>
