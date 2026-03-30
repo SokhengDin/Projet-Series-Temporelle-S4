@@ -122,7 +122,7 @@ via the **L-BFGS-B** numerical optimiser.
 
 ```bash
 # Clone the repo
-git clone <repo-url>
+git clone https://github.com/SokhengDin/Projet-Series-Temporelle-S4.git
 cd Projet-Series-Temporelle-S4
 
 # Create environment and install dependencies
