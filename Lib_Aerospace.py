@@ -1,7 +1,6 @@
 START_DATE = "2023-01-04"
 DATA_DIR   = "./data/Secteur_Aerospace"
 
-
 def load_series(ticker):
     import os
     import pandas as pd
@@ -147,9 +146,7 @@ def analyse(ticker):
            , "chart_data"     : chart_data
            }
 
-
 # Plots (base64)
-
 def _fig_to_b64(fig, tmp="tmp_plot.png"):
     import os
     from base64 import b64encode
