@@ -3,6 +3,8 @@
 **Modélisation Statistique — Séries Temporelles**
 **ENSIIE Paris-Évry · Master 1 · 2026**
 
+![Web App Preview](web.png)
+
 ---
 
 ## Group 2 — Members
